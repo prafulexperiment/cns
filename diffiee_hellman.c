@@ -1,50 +1,57 @@
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <math.h> 
- 
-#define P 23 // Prime number 
-#define G 5  // Primitive root modulo 
- 
-// Function to calculate modular exponentiation (base^exp % modulus) 
-int mod_exp(int base, int exp, int modulus) { 
-   int result = 1; 
-   while (exp > 0) { 
-      if (exp % 2 == 1) { 
-          result = (result * base) % modulus; 
-      } 
-      base = (base * base) % modulus; 
- exp /= 2; 
-   } 
-   return result; 
-} 
- 
-// Function to perform Diffie-Hellman Key Exchange 
- 
-void diffie_hellman(int private_key, int *public_key) { 
-   *public_key = mod_exp(G, private_key, P); 
-} 
- 
-int main() { 
-   int private_key_client, private_key_server; 
-   int public_key_client, public_key_server; 
-   int shared_secret_client, shared_secret_server; 
- 
-   // Generate private keys for client and server 
-   private_key_client = rand() % (P - 1) + 1; 
-   private_key_server = rand() % (P - 1) + 1; 
- 
-   // Perform Diffie-Hellman Key Exchange for client 
-   diffie_hellman(private_key_client, &public_key_client); 
-   // Perform Diffie-Hellman Key Exchange for server 
-   diffie_hellman(private_key_server, &public_key_server); 
- 
-   // Calculate shared secrets 
-   shared_secret_client = mod_exp(public_key_server, private_key_client, P); 
-   shared_secret_server = mod_exp(public_key_client, private_key_server, P); 
- 
-   // Print shared secrets 
-   printf("Client shared secret: %d\n", shared_secret_client); 
-   printf("Server shared secret: %d\n", shared_secret_server); 
- 
-   return 0; 
+#include <math.h>
+#include <stdio.h>
+
+// Power function to return value of a ^ b mod P
+long long int power(long long int a, long long int b, long long int P)
+{
+    if (b == 1)
+        return a;
+    else
+        return (((long long int)pow(a, b)) % P);
 }
+
+// Driver program
+int main()
+{
+    long long int P, G, x, a, y, b, ka, kb;
+
+    // Prompting user for input
+    printf("Enter the value of prime number P: ");
+    scanf("%lld", &P);
+    printf("Enter the value of primitive root G: ");
+    scanf("%lld", &G);
+    printf("Enter the private key for User 1 (a): ");
+    scanf("%lld", &a);
+    printf("Enter the private key for User 2 (b): ");
+    scanf("%lld", &b);
+
+    printf("\nThe value of P : %lld\n", P);
+    printf("The value of G : %lld\n\n", G);
+    printf("The private key a for Alice : %lld\n", a);
+    printf("The private key b for Bob : %lld\n\n", b);
+
+    // Generating keys
+    x = power(G, a, P); // Alice's generated key
+    y = power(G, b, P); // Bob's generated key
+
+    // Generating the secret key after the exchange of keys
+    ka = power(y, a, P); // Secret key for Alice
+    kb = power(x, b, P); // Secret key for Bob
+
+    printf("Public key for Alice is : %lld\n", x);
+    printf("Public key for Bob is : %lld\n", y);
+
+    // Check if the secret keys match
+    if (ka == kb) {
+        printf("\nKey exchange successful!\n");
+        printf("Secret key for User 1 is : %lld\n", ka);
+        printf("Secret key for User 2 is : %lld\n", kb);
+        return 1;
+    } else {
+        printf("\nKey exchange failed!\n");
+        return 0;
+    }
+}
+
+
+
