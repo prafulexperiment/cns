@@ -1,61 +1,103 @@
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <string.h> 
-#include <openssl/rsa.h> 
-#include <openssl/pem.h> 
- 
-#define MAX_LEN 1024 
- 
-int main() { 
-   RSA *rsa_A = NULL, *rsa_B = NULL; 
-   unsignedchar *plaintext = (unsigned char *)"Hello, UserB!"; 
-   unsignedchar ciphertext[MAX_LEN] = {0}; 
-   unsignedchar decryptedtext[MAX_LEN] = {0}; 
- 
-   // KeyGeneration for User A rsa_A =RSA_generate_key(2048, RSA_F4, NULL, NULL); 
-   if (rsa_A == NULL) { 
-      fprintf(stderr, "Error generating RSA key for User A\n"); 
-      return 1; 
-   } 
- 
-   // KeyGeneration for User B 
-   rsa_B =RSA_generate_key(2048, RSA_F4, NULL, NULL); 
-   if (rsa_B == NULL) { 
-      fprintf(stderr, "Error generating RSA key for User B\n"); 
-      RSA_free(rsa_A); 
-      return 1; 
-   } 
- 
-   // Encryption by User A 
-   int encrypted_len = RSA_public_encrypt(strlen((char *)plaintext), plaintext, ciphertext, rsa_B, 
-RSA_PKCS1_PADDING); 
-   if (encrypted_len == -1) { 
-      fprintf(stderr, "Error encrypting message\n"); 
-      RSA_free(rsa_A); 
-      RSA_free(rsa_B); 
-      return 1; 
-   } 
- 
-   // Decryption by User B 
-   int decrypted_len = RSA_private_decrypt(encrypted_len, ciphertext, decryptedtext, rsa_B, 
-RSA_PKCS1_PADDING); 
-   if (decrypted_len == -1) { 
-      fprintf(stderr, "Error decrypting message\n"); 
-      RSA_free(rsa_A); 
-      RSA_free(rsa_B); 
-      return 1; 
-   } 
- 
-   printf("Encrypted message by User A: "); 
-   for (int i = 0; i < encrypted_len; i++) { 
-      printf("%02x", ciphertext[i]); 
-   } 
-   printf("\n"); 
- 
-   printf("Decrypted message by User B: %s\n", decryptedtext); 
- 
-   RSA_free(rsa_A); 
-   RSA_free(rsa_B); 
- 
-   return 0; 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#define MAX_SIZE 100
+
+long long gcd(long long a, long long b) {
+    while (b != 0) {
+        long long t = b;
+        b = a % b;
+        a = t;
+    }
+    return a;
+}
+
+long long modInverse(long long e, long long phi) {
+    long long m0 = phi, t, q;
+    long long x0 = 0, x1 = 1;
+    if (phi == 1) return 0;
+    while (e > 1) {
+        q = e / phi;
+        t = phi;
+        phi = e % phi;
+        e = t;
+        t = x0;
+        x0 = x1 - q * x0;
+        x1 = t;
+    }
+    if (x1 < 0) x1 += m0;
+    return x1;
+}
+
+long long modExp(long long base, long long exp, long long mod) {
+    long long result = 1;
+    base = base % mod;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result = (result * base) % mod;
+        }
+        exp = exp >> 1;
+        base = (base * base) % mod;
+    }
+    return result;
+}
+
+void generateKeys(long long *n, long long *e, long long *d) {
+    long long p, q;
+    printf("Enter the value of p: ");
+    scanf("%lld", &p);
+    printf("Enter the value of q: ");
+    scanf("%lld", &q);
+   
+    *n = p * q;
+    long long phi = (p - 1) * (q - 1);
+    printf("Enter the value of e: ");
+    scanf("%lld", e);
+    *d = modInverse(*e, phi);
+}
+
+void encrypt(char *message, long long e, long long n) {
+    int len = strlen(message);
+    printf("Encrypted message: ");
+    for (int i = 0; i < len; i++) {
+        long long encryptedChar = modExp(message[i] - 'a', e, n);
+        printf("%lld ", encryptedChar);
+    }
+    printf("\n");
+}
+
+void decrypt(long long *encrypted, int size, long long d, long long n) {
+    printf("Decrypted message: ");
+    for (int i = 0; i < size; i++) {
+        long long decryptedChar = modExp(encrypted[i], d, n) + 'a';
+        printf("%c", (char)decryptedChar);
+    }
+    printf("\n");
+}
+
+int main() {
+    long long n, e, d;
+    generateKeys(&n, &e, &d);
+
+    printf("Public Key: (n: %lld, e: %lld)\n", n, e);
+    printf("Private Key: (n: %lld, d: %lld)\n", n, d);
+
+    char message[MAX_SIZE];
+    printf("Enter the message to encrypt: ");
+    scanf("%s", message);
+
+    encrypt(message, e, n);
+
+    // Decrypt the message
+    long long encrypted[MAX_SIZE];
+    int len = strlen(message);
+    for (int i = 0; i < len; i++) {
+        encrypted[i] = modExp(message[i] - 'a', e, n);
+    }
+
+    decrypt(encrypted, len, d, n);
+   
+    return 0;
 }
